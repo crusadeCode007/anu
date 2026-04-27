@@ -2,7 +2,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // UPDATE THIS IP FOR LOCAL EXPO TESTING:
-const DEV_URL = 'http://10.137.250.59:5000/api'; 
+const DEV_URL = 'http://10.17.67.59:5000/api';
 const PROD_URL = 'https://your-render-url.onrender.com/api'; // Replace with Render URL
 
 const isProd = false;
