@@ -53,7 +53,7 @@ const getCustomerById = async (req, res) => {
 
 const createCustomer = async (req, res) => {
     try {
-        const { companyName, email, phone, totalPurchaseAmount } = req.body;
+        const { companyName, email, phone, country, totalPurchaseAmount } = req.body;
         
         // Auto-generate customerId (e.g. CUST-1001)
         const count = await Customer.countDocuments();
@@ -69,6 +69,7 @@ const createCustomer = async (req, res) => {
             companyName,
             email,
             phone,
+            country: country || null,
             totalPurchaseAmount: totalPurchaseAmount ? parseFloat(totalPurchaseAmount) : 0,
             profileImageUrl
         });
@@ -82,13 +83,14 @@ const createCustomer = async (req, res) => {
 
 const updateCustomer = async (req, res) => {
     try {
-        const { companyName, email, phone, totalPurchaseAmount } = req.body;
+        const { companyName, email, phone, country, totalPurchaseAmount } = req.body;
         const customer = await Customer.findById(req.params.id);
         
         if (customer) {
             customer.companyName = companyName || customer.companyName;
             customer.email = email || customer.email;
             customer.phone = phone || customer.phone;
+            if (country !== undefined) customer.country = country;
             
             if (totalPurchaseAmount !== undefined) {
                 customer.totalPurchaseAmount = parseFloat(totalPurchaseAmount);

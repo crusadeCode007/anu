@@ -8,18 +8,18 @@ const {
     deleteCustomer, 
     addPurchase 
 } = require('../controllers/customerController');
-const { protect } = require('../middlewares/authMiddleware');
+const { protect, requireAdmin } = require('../middlewares/authMiddleware');
 const upload = require('../middlewares/uploadMiddleware');
 
 router.route('/')
     .get(protect, getCustomers)
-    .post(protect, upload.single('image'), createCustomer);
+    .post(protect, requireAdmin, upload.single('image'), createCustomer);
 
 router.route('/:id')
     .get(protect, getCustomerById)
-    .put(protect, upload.single('image'), updateCustomer)
-    .delete(protect, deleteCustomer);
+    .put(protect, requireAdmin, upload.single('image'), updateCustomer)
+    .delete(protect, requireAdmin, deleteCustomer);
 
-router.post('/:id/purchase', protect, addPurchase);
+router.post('/:id/purchase', protect, requireAdmin, addPurchase);
 
 module.exports = router;

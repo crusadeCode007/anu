@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiClient from '../api/apiClient';
 import CustomerCard from '../components/CustomerCard';
 import PieChartComponent from '../components/PieChartComponent';
@@ -8,19 +9,33 @@ import CustomerModal from '../components/CustomerModal';
 import CustomerEditModal from '../components/CustomerEditModal';
 import CustomerCreateModal from '../components/CustomerCreateModal';
 
-export default function DashboardScreen({ navigation }) {
+export default function DashboardScreen({ navigation, route }) {
     const [customers, setCustomers] = useState([]);
     const [dashboardData, setDashboardData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [role, setRole] = useState(route?.params?.role || 'sales');
 
     // Modals state
     const [selectedCustomer, setSelectedCustomer] = useState(null);
     const [viewModalVisible, setViewModalVisible] = useState(false);
     const [editModalVisible, setEditModalVisible] = useState(false);
     const [createModalVisible, setCreateModalVisible] = useState(false);
+
+    const isAdmin = role === 'admin';
+
+    // Load role from AsyncStorage as fallback
+    useEffect(() => {
+        const loadRole = async () => {
+            if (!route?.params?.role) {
+                const storedRole = await AsyncStorage.getItem('userRole');
+                if (storedRole) setRole(storedRole);
+            }
+        };
+        loadRole();
+    }, []);
 
     const fetchData = async (pageNum = 1, searchQuery = search) => {
         try {
@@ -55,7 +70,6 @@ export default function DashboardScreen({ navigation }) {
 
     const handleSearch = (text) => {
         setSearch(text);
-        // fetchData is called by useFocusEffect when search changes
     };
 
     const loadMore = () => {
@@ -82,34 +96,11 @@ export default function DashboardScreen({ navigation }) {
                         fetchData(1, search);
                         Alert.alert('Success', 'Customer deleted');
                     } catch (error) {
-                        Alert.alert('Error', 'Failed to delete');
+                        Alert.alert('Error', error.response?.data?.message || 'Failed to delete');
                     }
                 }
             }
         ]);
-    };
-
-    const handleAddPurchase = async () => {
-        Alert.prompt('Add Purchase', 'Enter amount to add:', [
-            { text: 'Cancel', style: 'cancel' },
-            {
-                text: 'Add',
-                onPress: async (amount) => {
-                    if (!amount || isNaN(amount) || Number(amount) <= 0) {
-                        Alert.alert('Error', 'Invalid amount');
-                        return;
-                    }
-                    try {
-                        const res = await apiClient.post(`/customers/${selectedCustomer._id}/purchase`, { amount });
-                        setSelectedCustomer(res.data);
-                        fetchData(1, search); // Refresh list to update segment/sorting
-                        Alert.alert('Success', 'Purchase amount added');
-                    } catch (error) {
-                        Alert.alert('Error', 'Failed to add purchase');
-                    }
-                }
-            }
-        ], 'plain-text');
     };
 
     const openEditModal = () => {
@@ -128,18 +119,33 @@ export default function DashboardScreen({ navigation }) {
         fetchData(1, search);
     };
 
+    const handleLogout = async () => {
+        await AsyncStorage.multiRemove(['userToken', 'username', 'userRole']);
+        navigation.replace('Login');
+    };
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>Dashboard</Text>
-                <View style={styles.headerButtons}>
-                    <TouchableOpacity onPress={() => navigation.navigate('SegmentRules')} style={styles.headerBtn}>
-                        <Text style={styles.headerBtnText}>⚙️ Rules</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => navigation.replace('Login')} style={styles.headerBtn}>
-                        <Text style={styles.headerBtnText}>🚪 Logout</Text>
+                <View style={styles.headerTopRow}>
+                    <View>
+                        <Text style={styles.headerTitle}>Dashboard</Text>
+                        <Text style={styles.roleTag}>{isAdmin ? '🔑 Admin' : '👤 Sales'}</Text>
+                    </View>
+                    <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
+                        <Text style={styles.logoutBtnText}>🚪 Logout</Text>
                     </TouchableOpacity>
                 </View>
+                {isAdmin && (
+                    <View style={styles.adminButtonBar}>
+                        <TouchableOpacity onPress={() => navigation.navigate('UserManagement')} style={styles.headerBtn}>
+                            <Text style={styles.headerBtnText}>👥 Users</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => navigation.navigate('SegmentRules')} style={styles.headerBtn}>
+                            <Text style={styles.headerBtnText}>⚙️ Rules</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
             </View>
 
             <View style={styles.actionRow}>
@@ -150,9 +156,11 @@ export default function DashboardScreen({ navigation }) {
                     value={search}
                     onChangeText={handleSearch}
                 />
-                <TouchableOpacity style={styles.createBtn} onPress={() => setCreateModalVisible(true)}>
-                    <Text style={styles.createBtnText}>+ New</Text>
-                </TouchableOpacity>
+                {isAdmin && (
+                    <TouchableOpacity style={styles.createBtn} onPress={() => setCreateModalVisible(true)}>
+                        <Text style={styles.createBtnText}>+ New</Text>
+                    </TouchableOpacity>
+                )}
             </View>
 
             {dashboardData && <PieChartComponent data={dashboardData.pieChartData} />}
@@ -181,32 +189,40 @@ export default function DashboardScreen({ navigation }) {
                 onClose={() => setViewModalVisible(false)}
                 onEdit={openEditModal}
                 onDelete={handleDelete}
-                onAddPurchase={handleAddPurchase}
+                role={role}
             />
 
-            <CustomerEditModal
-                visible={editModalVisible}
-                customer={selectedCustomer}
-                onClose={() => setEditModalVisible(false)}
-                onUpdate={handleUpdateCustomer}
-            />
+            {isAdmin && (
+                <CustomerEditModal
+                    visible={editModalVisible}
+                    customer={selectedCustomer}
+                    onClose={() => setEditModalVisible(false)}
+                    onUpdate={handleUpdateCustomer}
+                />
+            )}
 
-            <CustomerCreateModal
-                visible={createModalVisible}
-                onClose={() => setCreateModalVisible(false)}
-                onCreate={handleCreateCustomer}
-            />
+            {isAdmin && (
+                <CustomerCreateModal
+                    visible={createModalVisible}
+                    onClose={() => setCreateModalVisible(false)}
+                    onCreate={handleCreateCustomer}
+                />
+            )}
         </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#0B0B0F', padding: 15 },
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, paddingTop: 30 },
+    header: { marginBottom: 15, paddingTop: 30 },
+    headerTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     headerTitle: { color: '#fff', fontSize: 24, fontWeight: 'bold' },
-    headerButtons: { flexDirection: 'row', gap: 10 },
-    headerBtn: { backgroundColor: '#1E1E24', padding: 8, borderRadius: 8 },
-    headerBtnText: { color: '#fff', fontSize: 12 },
+    roleTag: { color: '#aaa', fontSize: 12, marginTop: 2 },
+    logoutBtn: { backgroundColor: '#ef4444', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8 },
+    logoutBtnText: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
+    adminButtonBar: { flexDirection: 'row', marginTop: 12, gap: 10 },
+    headerBtn: { backgroundColor: '#1E1E24', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8 },
+    headerBtnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
     actionRow: { flexDirection: 'row', marginBottom: 15, gap: 10 },
     searchBar: { flex: 1, backgroundColor: '#2A2A35', color: '#fff', borderRadius: 8, paddingHorizontal: 15, height: 45 },
     createBtn: { backgroundColor: '#7C4DFF', justifyContent: 'center', paddingHorizontal: 15, borderRadius: 8 },

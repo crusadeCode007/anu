@@ -1,15 +1,19 @@
 const Customer = require('../models/Customer');
+const SegmentRule = require('../models/SegmentRule');
 const { computeSegment } = require('../services/segmentationService');
 
 const getDashboardData = async (req, res) => {
     try {
         const customers = await Customer.find();
+        const rules = await SegmentRule.find().sort({ minPurchase: 1 });
         
-        let segmentCounts = {
-            Normal: 0,
-            Gold: 0,
-            Platinum: 0
-        };
+        // Initialize segment counts dynamically from rules
+        const segmentCounts = {};
+        const segmentColors = { Normal: '#3b82f6', Gold: '#fbbf24', Platinum: '#a855f7' };
+        
+        for (const rule of rules) {
+            segmentCounts[rule.name] = 0;
+        }
         
         for (let c of customers) {
             const { segment } = await computeSegment(c.totalPurchaseAmount);
@@ -20,12 +24,11 @@ const getDashboardData = async (req, res) => {
             }
         }
         
-        const pieChartData = Object.keys(segmentCounts).map((key, index) => {
-            const colors = { Normal: '#3b82f6', Gold: '#fbbf24', Platinum: '#a855f7' };
+        const pieChartData = Object.keys(segmentCounts).map((key) => {
             return {
                 name: key,
                 count: segmentCounts[key],
-                color: colors[key] || '#9ca3af',
+                color: segmentColors[key] || '#9ca3af',
                 legendFontColor: "#7F7F7F",
                 legendFontSize: 12
             };

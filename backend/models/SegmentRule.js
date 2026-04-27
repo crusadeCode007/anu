@@ -2,16 +2,20 @@ const mongoose = require('mongoose');
 
 const segmentRuleSchema = new mongoose.Schema({
     name: {
-        type: String, // 'Normal', 'Gold', 'Platinum'
+        type: String,
         required: true,
         unique: true
     },
-    minPurchaseAmount: {
+    minPurchase: {
+        type: Number,
+        required: true
+    },
+    maxPurchase: {
         type: Number,
         required: true
     },
     discountRate: {
-        type: Number, // Percentage 0-100
+        type: Number,
         required: true
     }
 });

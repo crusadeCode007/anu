@@ -35,9 +35,19 @@ export default function CustomerEditModal({ visible, customer, onClose, onUpdate
         }
     };
 
+    const isValidEmail = (value) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(value);
+    };
+
     const handleSave = async () => {
         if (!companyName.trim() || !email.trim() || !phone.trim()) {
             Alert.alert('Error', 'Fields cannot be empty');
+            return;
+        }
+
+        if (!isValidEmail(email.trim())) {
+            Alert.alert('Validation Error', 'Enter a valid email address');
             return;
         }
 

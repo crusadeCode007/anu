@@ -22,13 +22,17 @@ export default function SegmentRulesScreen({ navigation }) {
         }
     };
 
-    const handleUpdate = async (id, minPurchaseAmount, discountRate) => {
+    const handleUpdate = async (id, minPurchase, maxPurchase, discountRate) => {
         setSavingId(id);
         try {
-            await apiClient.put(`/rules/${id}`, { minPurchaseAmount, discountRate });
+            await apiClient.put(`/rules/${id}`, { 
+                minPurchase: Number(minPurchase), 
+                maxPurchase: Number(maxPurchase), 
+                discountRate: Number(discountRate) 
+            });
             Alert.alert('Success', 'Rule updated successfully');
         } catch (error) {
-            Alert.alert('Error', 'Failed to update rule');
+            Alert.alert('Validation Error', error.response?.data?.message || 'Failed to update rule');
         } finally {
             setSavingId(null);
         }
@@ -58,7 +62,7 @@ export default function SegmentRulesScreen({ navigation }) {
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.infoBox}>
                     <Text style={styles.infoText}>
-                        Rules define how customers are automatically segmented based on their "Total Purchase Amount". Adjusting these updates all customers dynamically on the dashboard.
+                        Rules define customer segments based on Total Purchase Amount. Ranges must NOT overlap. Changes update all customer segments dynamically.
                     </Text>
                 </View>
 
@@ -70,11 +74,21 @@ export default function SegmentRulesScreen({ navigation }) {
                         </View>
                         
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Min Purchase Amount ($)</Text>
+                            <Text style={styles.label}>Min Purchase ($)</Text>
                             <TextInput
                                 style={styles.input}
-                                value={String(rule.minPurchaseAmount)}
-                                onChangeText={(val) => updateLocalState(rule._id, 'minPurchaseAmount', val)}
+                                value={String(rule.minPurchase)}
+                                onChangeText={(val) => updateLocalState(rule._id, 'minPurchase', val)}
+                                keyboardType="numeric"
+                            />
+                        </View>
+
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Max Purchase ($)</Text>
+                            <TextInput
+                                style={styles.input}
+                                value={String(rule.maxPurchase)}
+                                onChangeText={(val) => updateLocalState(rule._id, 'maxPurchase', val)}
                                 keyboardType="numeric"
                             />
                         </View>
@@ -91,7 +105,7 @@ export default function SegmentRulesScreen({ navigation }) {
 
                         <TouchableOpacity 
                             style={styles.saveBtn} 
-                            onPress={() => handleUpdate(rule._id, rule.minPurchaseAmount, rule.discountRate)}
+                            onPress={() => handleUpdate(rule._id, rule.minPurchase, rule.maxPurchase, rule.discountRate)}
                             disabled={savingId === rule._id}
                         >
                             {savingId === rule._id ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>Save Rule</Text>}

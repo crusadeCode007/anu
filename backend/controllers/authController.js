@@ -2,8 +2,8 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const User = require('../models/User');
 
-const generateToken = (id) => {
-    return jwt.sign({ id }, process.env.JWT_SECRET || 'fallback_secret', {
+const generateToken = (id, role) => {
+    return jwt.sign({ id, role }, process.env.JWT_SECRET || 'fallback_secret', {
         expiresIn: '30d',
     });
 };
@@ -17,7 +17,8 @@ const login = async (req, res) => {
             res.json({
                 _id: user._id,
                 username: user.username,
-                token: generateToken(user._id)
+                role: user.role,
+                token: generateToken(user._id, user.role)
             });
         } else {
             res.status(401).json({ message: 'Invalid username or password' });

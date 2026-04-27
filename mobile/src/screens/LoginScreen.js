@@ -19,7 +19,8 @@ export default function LoginScreen({ navigation }) {
             const response = await apiClient.post('/auth/login', { username, password });
             await AsyncStorage.setItem('userToken', response.data.token);
             await AsyncStorage.setItem('username', response.data.username);
-            navigation.replace('Dashboard');
+            await AsyncStorage.setItem('userRole', response.data.role || 'sales');
+            navigation.replace('Dashboard', { role: response.data.role || 'sales' });
         } catch (error) {
             Alert.alert('Login Failed', error.response?.data?.message || 'Server error');
         } finally {

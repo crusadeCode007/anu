@@ -2,10 +2,11 @@ import React from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, Image } from 'react-native';
 import { getImageUrl } from '../api/apiClient';
 
-export default function CustomerModal({ visible, customer, onClose, onEdit, onDelete, onAddPurchase }) {
+export default function CustomerModal({ visible, customer, onClose, onEdit, onDelete, role }) {
     if (!customer) return null;
     
     const avatarUrl = getImageUrl(customer.profileImageUrl);
+    const isAdmin = role === 'admin';
 
     return (
         <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -35,22 +36,26 @@ export default function CustomerModal({ visible, customer, onClose, onEdit, onDe
                     <View style={styles.detailsSection}>
                         <DetailRow label="Email" value={customer.email} />
                         <DetailRow label="Phone" value={customer.phone} />
+                        {customer.country ? <DetailRow label="Country" value={customer.country} /> : null}
                         <DetailRow label="Total Purchases" value={`$${(customer.totalPurchaseAmount || 0).toLocaleString()}`} />
                         <DetailRow label="Segment" value={customer.segment || 'Normal'} />
                         <DetailRow label="Discount Rate" value={`${customer.discountRate || 0}%`} />
                     </View>
 
-                    <View style={styles.actionSection}>
-                        <TouchableOpacity style={[styles.btn, styles.editBtn]} onPress={onEdit}>
-                            <Text style={styles.btnText}>Edit Info</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={[styles.btn, styles.purchaseBtn]} onPress={onAddPurchase}>
-                            <Text style={styles.btnText}>+ Purchase</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={[styles.btn, styles.deleteBtn]} onPress={onDelete}>
-                            <Text style={styles.btnText}>Delete</Text>
-                        </TouchableOpacity>
-                    </View>
+                    {isAdmin ? (
+                        <View style={styles.actionSection}>
+                            <TouchableOpacity style={[styles.btn, styles.editBtn]} onPress={onEdit}>
+                                <Text style={styles.btnText}>Edit Info</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={[styles.btn, styles.deleteBtn]} onPress={onDelete}>
+                                <Text style={styles.btnText}>Delete</Text>
+                            </TouchableOpacity>
+                        </View>
+                    ) : (
+                        <View style={styles.readOnlyBanner}>
+                            <Text style={styles.readOnlyText}>👁 View Only Mode</Text>
+                        </View>
+                    )}
                 </View>
             </View>
         </Modal>
@@ -100,7 +105,8 @@ const styles = StyleSheet.create({
     actionSection: { flexDirection: 'row', justifyContent: 'space-between' },
     btn: { flex: 1, padding: 12, borderRadius: 8, alignItems: 'center', marginHorizontal: 5 },
     editBtn: { backgroundColor: '#3b82f6' },
-    purchaseBtn: { backgroundColor: '#22c55e' },
     deleteBtn: { backgroundColor: '#ef4444' },
-    btnText: { color: '#fff', fontWeight: 'bold', fontSize: 14 }
+    btnText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
+    readOnlyBanner: { backgroundColor: '#2A2A35', padding: 12, borderRadius: 8, alignItems: 'center' },
+    readOnlyText: { color: '#aaa', fontSize: 14 }
 });
