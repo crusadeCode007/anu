@@ -1,0 +1,10 @@
+{
+  "expo": {
+    "name": "ERP Reviews",
+    "slug": "erp-reviews-notifications",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": ["**/*"]
+  }
+}
